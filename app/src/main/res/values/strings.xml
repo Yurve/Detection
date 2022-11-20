@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Detection</string>
+    <string name="camera_id">Camera_ID</string>
+    <string name="save_and_start">저장 및 실행</string>
+</resources>
