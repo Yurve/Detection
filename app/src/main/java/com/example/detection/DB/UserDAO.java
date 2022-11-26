@@ -1,9 +1,11 @@
-package com.example.detection;
+package com.example.detection.DB;
 
 import androidx.room.Dao;
 import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.Query;
+
+import com.example.detection.DB.ID;
 
 import java.util.List;
 

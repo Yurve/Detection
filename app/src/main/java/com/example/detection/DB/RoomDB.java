@@ -1,4 +1,4 @@
-package com.example.detection;
+package com.example.detection.DB;
 
 import android.content.Context;
 

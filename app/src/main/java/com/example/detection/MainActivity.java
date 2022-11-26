@@ -1,11 +1,17 @@
 package com.example.detection;
 
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.detection.DB.ID;
+import com.example.detection.DB.RoomDB;
 
 public class MainActivity extends AppCompatActivity {
     @Override
@@ -14,6 +20,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         EditText editText = findViewById(R.id.editText);
         Button button = findViewById(R.id.button);
+
+        //권한 확인하기
+        permissionCheck();
 
         //DB 생성
         RoomDB roomDB = RoomDB.getInstance(this);
@@ -37,4 +46,24 @@ public class MainActivity extends AppCompatActivity {
             finish();
         });
     }
+
+    //권한 허용
+    public void permissionCheck() {
+        PermissionSupport permissionSupport = new PermissionSupport(this, this);
+        permissionSupport.checkPermissions();
+    }
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (requestCode == PermissionSupport.MULTIPLE_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "Ok", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "No", Toast.LENGTH_SHORT).show();
+            }
+        }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
 }

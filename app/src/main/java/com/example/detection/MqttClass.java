@@ -5,6 +5,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.widget.Toast;
 
+import com.example.detection.Bluetooth.BluetoothConnect;
+
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -14,22 +16,30 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.StringTokenizer;
 
 //서버로 사진 정보 전송하는 MQTT 클래스
 public class MqttClass implements MqttCallback {
+    private BluetoothConnect bluetoothConnect;
     static String CLIENT_ID = "s21_Ultra";
-    static String SERVER_ADDERS = "********************************";
+    static String SERVER_ADDRESS = "***************************";
 
     private final Activity activity;
     private MqttClient mqttClient;
     static String TOPIC_PREVIEW = "HkPlatform/Camera/Image";
     static String TOPIC_DETECT = "detect";
     static String TOPIC_CONTROL = "aicms/toCam";
+    static String TOPIC_MOTOR = "aicms/controlCam";
 
     public MqttClass(Activity activity) {
         this.activity = activity;
+    }
+
+    //블루투스 객체 가져오기
+    public void setBluetoothConnect(BluetoothConnect bluetoothConnect) {
+        this.bluetoothConnect = bluetoothConnect;
     }
 
     public void connectMqtt() {
@@ -43,7 +53,7 @@ public class MqttClass implements MqttCallback {
 
         MqttDefaultFilePersistence persistence = new MqttDefaultFilePersistence(activity.getFilesDir().getAbsolutePath());
         try {
-            mqttClient = new MqttClient(SERVER_ADDERS, CLIENT_ID, persistence);
+            mqttClient = new MqttClient(SERVER_ADDRESS, CLIENT_ID, persistence);
             mqttClient.setCallback(this);
             mqttClient.connect(options);
             Handler handler = new Handler(Looper.getMainLooper());
@@ -110,6 +120,39 @@ public class MqttClass implements MqttCallback {
                         st.nextToken();
                         //이후 문자열을 숫자로 변환한 후 서버로 보내는 미리보기 사진의 시간간격을 수정한다.
                         CameraActivity.interval_time = Float.parseFloat(st.nextToken());
+                    }
+                }
+
+                @Override
+                public void deliveryComplete(IMqttDeliveryToken token) {
+
+                }
+            });
+        } catch (MqttException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void motorControl() {
+        try {
+            mqttClient.subscribe(TOPIC_MOTOR);
+            mqttClient.setCallback(new MqttCallback() {
+                @Override
+                public void connectionLost(Throwable cause) {
+
+                }
+
+                @Override
+                public void messageArrived(String topic, MqttMessage message) throws IOException {
+                    //블루투스 쓰레드가 살아있다면
+                    if(bluetoothConnect.checkThread()) {
+                        //블루투스로 전송
+                        bluetoothConnect.write(message.toString());
+                    }else{
+                        //재연결
+                        bluetoothConnect.connectAgain();
+                        //재전송
+                        bluetoothConnect.write(message.toString());
                     }
                 }
 

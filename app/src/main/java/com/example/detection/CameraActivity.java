@@ -1,14 +1,12 @@
 package com.example.detection;
 
 import android.annotation.SuppressLint;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.media.Image;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -20,14 +18,17 @@ import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 
+import com.example.detection.Bluetooth.BluetoothConnect;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
@@ -44,14 +45,15 @@ public class CameraActivity extends AppCompatActivity {
     private ProcessOnnx processOnnx; //Onnx 처리 클래스
     private OrtEnvironment ortEnvironment;
     private OrtSession session;
+    private BluetoothConnect bluetoothConnect; //블루투스 연결 클래스
     private Async async;   //비동기 처리 클래스
     private int fireCount = 0; //불이 났다고 생각하는 횟수를 측정
     private DataProcess dataProcess; //서버로 전송을 위한 정보 처리 클래스
     private boolean booleanFire = false; //불이 난 시간 차를 측정하기위해 쓰이는 불리안
     private Long timeCount_1 = 0L;  //시간 비교
     private Long timeCount_2 = 0L;  //시간 비교
-    static public float scale = 1f; //객체 검출 시 사진의 비율을 줄이거나 키울 수 있음.
-    static public float interval_time = 0.5f;
+    static public float scale = 1f; //미리보기 사진의 크기를 수정할 수 있다.
+    static public float interval_time = 0.5f; //미리보기 사진의 전송 시간차를 수정할 수 있다.
 
 
     @Override
@@ -64,11 +66,14 @@ public class CameraActivity extends AppCompatActivity {
         //비동기 처리 클래스 (mqtt 전송을 위해)
         async = new Async(this, this);
 
+        //블루투스 실행하기
+        startBluetooth();
+
         //서버로 전송을 위한 정보 처리 클래스
         dataProcess = new DataProcess();
 
-        //권한 확인하기
-        permissionCheck();
+        //Onnx 처리 과정 클래스 켜기
+        processOnnx = new ProcessOnnx(this);
 
         //각종 모델 불러오기
         load();
@@ -83,9 +88,26 @@ public class CameraActivity extends AppCompatActivity {
 
         //서버로 부터 제어 정보 수신
         async.receiveMQTT(MqttClass.TOPIC_CONTROL);
+
+        //서버로 부터 모터 제어 정보 수신
+        async.motorControl();
+
         //카메라 켜기
         startCamera();
     }
+
+    //블루투스 연결하기
+    public void startBluetooth() {
+        //블루투스 연결 객체 생성
+        bluetoothConnect = new BluetoothConnect(this);
+        //블루투스 켜기
+        bluetoothConnect.bluetoothOn();
+        //페어링된 기기 알람 띄우기 연결이 왜안되지?
+        bluetoothConnect.listPairedDevices();
+        //블루투스 클래스 mqtt 클래스에 전송
+        async.getBluetoothConnect(bluetoothConnect);
+    }
+
 
     //카메라 켜기
     public void startCamera() {
@@ -139,9 +161,9 @@ public class CameraActivity extends AppCompatActivity {
         if (image != null) {
             //이미지를 비트맵으로 변환
             Bitmap bitmap = processOnnx.imageToBitmap(image);
-            //서버로 전송할 이미지는 크기를 줄여야한다.
-            Bitmap serverBitmap = Bitmap.createScaledBitmap(bitmap, bitmap.getWidth() / 3, bitmap.getHeight() / 3, true);
-            //이미지 서버로 전송 (1초마다) 현재 크기 너비 : 높이 = 240 : 426
+            //서버로 전송할 이미지는 크기를 줄여야한다. 클라이언트가 원한다면 scale 을 키울 수 있다.
+            Bitmap serverBitmap = Bitmap.createScaledBitmap(bitmap, Math.round(bitmap.getWidth() * scale / 3), Math.round(bitmap.getHeight() * scale / 3), true);
+            //이미지 서버로 전송 (0.5초마다) 현재 크기 너비 : 높이 = 240 : 426
             async.sendMqtt(MqttClass.TOPIC_PREVIEW, serverBitmap, null, interval_time);
             //비트맵 크기를 수정한다(640x640).
             Bitmap bitmap_640 = processOnnx.rescaleBitmap(bitmap);
@@ -191,33 +213,39 @@ public class CameraActivity extends AppCompatActivity {
 
                 //count 가 5 이상이면 전송을 해당 사진을 잘라서 전송한다.
                 if (fireCount >= 5) {
+                    JSONArray fireRect = new JSONArray();
+                    JSONArray smokeRect = new JSONArray();
                     JSONObject rectJson = new JSONObject();
-                    int i = 0;
+
                     //만약 유의미한 result 값이 나온다면 서버에 전체 사진 및 객체의 좌표값을 전송한다.
                     for (Result _result : results) {
                         Rect rect = new Rect();
-                        float scaleX = (bitmap.getWidth() / (float) rectView.getWidth()) / scale;
-                        float scaleY = (bitmap.getHeight() / (float) rectView.getHeight()) / scale;
+                        float scaleX = (bitmap.getWidth() / (float) rectView.getWidth());
+                        float scaleY = (bitmap.getHeight() / (float) rectView.getHeight());
                         rect.left = (int) (_result.rect.left * scaleX);
                         rect.right = (int) (_result.rect.right * scaleX);
                         rect.top = (int) (_result.rect.top * scaleY);
                         rect.bottom = (int) (_result.rect.bottom * scaleY);
-                        //rect 객체들과 해당되는 클래스 이름 (화재 or 연기)를  json 에 담는다.
-                        try {
-                            rectJson.put(processOnnx.classes[_result.classIndex] + "-" + i, rect.toString());
-                            i++;
-                        } catch (JSONException e) {
-                            e.printStackTrace();
+                        //rect 객체들과 해당되는 클래스 이름 (화재 or 연기)를  json Array 에 담는다.
+                        if (Objects.equals(processOnnx.classes[_result.classIndex], "fire")) {
+                            fireRect.put(rect.toString());
+                        } else if (Objects.equals(processOnnx.classes[_result.classIndex], "smoke")) {
+                            smokeRect.put(rect.toString());
                         }
                     }
+                    //json array 들을 하나의 json object 로 합쳐서 전송한다.
+                    rectJson.put("Fire",fireRect);
+                    rectJson.put("Smoke",smokeRect);
+                    //확률 값도추가해서 넣는다. 80%이상이면 전송
+                    rectJson.put("conf",Math.round(processOnnx.objectThresh * 100) + "%");
+
                     //비트맵을 원본 크기로 키워야한다. 현재 너비 : 높이 = 1440 : 3100
-                    Bitmap sendBitmap = Bitmap.createScaledBitmap(bitmap, rectView.getWidth() / (int) scale, rectView.getHeight() / (int) scale, true);
+                    Bitmap sendBitmap = Bitmap.createScaledBitmap(bitmap, rectView.getWidth(), rectView.getHeight(), true);
                     async.sendMqtt(MqttClass.TOPIC_DETECT, sendBitmap, rectJson, 0);
                     //다시 count 를 0으로 바꾼다.
                     fireCount = 0;
                 }
-
-            } catch (OrtException e) {
+            } catch (OrtException | JSONException e) {
                 e.printStackTrace();
             }
         }
@@ -242,34 +270,14 @@ public class CameraActivity extends AppCompatActivity {
         }
     }
 
-    //권한 허용
-    public void permissionCheck() {
-        PermissionSupport permissionSupport = new PermissionSupport(this, this);
-        permissionSupport.checkPermissions();
-        //Onnx 처리 과정 클래스 켜기
-        processOnnx = new ProcessOnnx(this);
-    }
-
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode == PermissionSupport.MULTIPLE_PERMISSION) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Ok", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "No", Toast.LENGTH_SHORT).show();
-            }
-        }
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-    }
-
     @Override
     protected void onDestroy() {
         async.close();
         try {
+            bluetoothConnect.close();
             ortEnvironment.close();
             session.close();
-        } catch (OrtException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         super.onDestroy();

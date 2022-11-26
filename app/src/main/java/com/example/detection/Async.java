@@ -6,6 +6,9 @@ import android.graphics.Bitmap;
 import android.os.SystemClock;
 import android.util.Log;
 
+import com.example.detection.Bluetooth.BluetoothConnect;
+import com.example.detection.DB.RoomDB;
+
 import org.json.JSONObject;
 
 import java.util.Iterator;
@@ -35,8 +38,6 @@ public class Async {
         mqttClass.connectMqtt();
         //데이터 처리 클래스
         dataProcess = new DataProcess();
-        Log.d("mqtt", "connect");
-
     }
 
     public Observable<JSONObject> sendRxJava(Bitmap image, @Nullable JSONObject rectJson, float intervalTime) {
@@ -65,7 +66,7 @@ public class Async {
                 }
 
                 //특정 초를 넘겼다면 각종 정보들을 json 에 담는다.
-                jsonObject.put("ID", RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId()); //ID 전송
+                jsonObject.put("CameraId", RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId()); //ID 전송
                 jsonObject.put("Date", dataProcess.saveTime());    //현재시간 정보
                 jsonObject.put("Type", "Fire");              //타입이 필요할지..?
                 jsonObject.put("ImageUri", dataProcess.bitmapToString(image));  //base64 image
@@ -114,6 +115,16 @@ public class Async {
     //mqtt 수신
     public void receiveMQTT(String topic) {
         mqttClass.receive(topic);
+    }
+
+    //mqtt 모터 제어정보 수신
+    public void motorControl(){
+        mqttClass.motorControl();
+    }
+
+    //mqtt 블루투스 클래스 전달
+    public void getBluetoothConnect(BluetoothConnect bluetoothConnect){
+        mqttClass.setBluetoothConnect(bluetoothConnect);
     }
 
     public void close() {
