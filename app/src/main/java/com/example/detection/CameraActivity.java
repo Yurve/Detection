@@ -28,7 +28,6 @@ import org.json.JSONObject;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
@@ -86,11 +85,8 @@ public class CameraActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        //서버로 부터 제어 정보 수신
-        async.receiveMQTT(MqttClass.TOPIC_CONTROL);
-
-        //서버로 부터 모터 제어 정보 수신
-        async.motorControl();
+        //서버로 부터 제어 정보 수신 및 모터 제어 정보 수신, WebRTC 신호 정보 수신
+        async.receiveMQTT(MqttClass.TOPIC_CONTROL, MqttClass.TOPIC_MOTOR, MqttClass.TOPIC_WEBRTC);
 
         //카메라 켜기
         startCamera();
@@ -102,7 +98,7 @@ public class CameraActivity extends AppCompatActivity {
         bluetoothConnect = new BluetoothConnect(this);
         //블루투스 켜기
         bluetoothConnect.bluetoothOn();
-        //페어링된 기기 알람 띄우기 연결이 왜안되지?
+        //페어링된 기기 알람 띄우기 
         bluetoothConnect.listPairedDevices();
         //블루투스 클래스 mqtt 클래스에 전송
         async.getBluetoothConnect(bluetoothConnect);
@@ -163,7 +159,7 @@ public class CameraActivity extends AppCompatActivity {
             Bitmap bitmap = processOnnx.imageToBitmap(image);
             //서버로 전송할 이미지는 크기를 줄여야한다. 클라이언트가 원한다면 scale 을 키울 수 있다.
             Bitmap serverBitmap = Bitmap.createScaledBitmap(bitmap, Math.round(bitmap.getWidth() * scale / 3), Math.round(bitmap.getHeight() * scale / 3), true);
-            //이미지 서버로 전송 (0.5초마다) 현재 크기 너비 : 높이 = 240 : 426
+            //이미지 서버로 전송 (0.5초마다) 현재 크기 너비 : 높이 = 426 : 240
             async.sendMqtt(MqttClass.TOPIC_PREVIEW, serverBitmap, null, interval_time);
             //비트맵 크기를 수정한다(640x640).
             Bitmap bitmap_640 = processOnnx.rescaleBitmap(bitmap);
@@ -196,6 +192,7 @@ public class CameraActivity extends AppCompatActivity {
                 rectView.clear();
                 rectView.resultToList(results);
                 rectView.invalidate();
+
                 //만약 유의미한 결과가 나왔다면시간을 측정한다. 그리고 fireCount 를 증가한다.
                 if (results.size() > 0) {
                     if (booleanFire) {
@@ -213,9 +210,8 @@ public class CameraActivity extends AppCompatActivity {
 
                 //count 가 5 이상이면 전송을 해당 사진을 잘라서 전송한다.
                 if (fireCount >= 5) {
-                    JSONArray fireRect = new JSONArray();
-                    JSONArray smokeRect = new JSONArray();
                     JSONObject rectJson = new JSONObject();
+                    JSONArray rectArray = new JSONArray();
 
                     //만약 유의미한 result 값이 나온다면 서버에 전체 사진 및 객체의 좌표값을 전송한다.
                     for (Result _result : results) {
@@ -226,18 +222,12 @@ public class CameraActivity extends AppCompatActivity {
                         rect.right = (int) (_result.rect.right * scaleX);
                         rect.top = (int) (_result.rect.top * scaleY);
                         rect.bottom = (int) (_result.rect.bottom * scaleY);
+                        String rectString = rect.left + ", " + rect.right + ", " + rect.top + ", " + rect.bottom;
                         //rect 객체들과 해당되는 클래스 이름 (화재 or 연기)를  json Array 에 담는다.
-                        if (Objects.equals(processOnnx.classes[_result.classIndex], "fire")) {
-                            fireRect.put(rect.toString());
-                        } else if (Objects.equals(processOnnx.classes[_result.classIndex], "smoke")) {
-                            smokeRect.put(rect.toString());
-                        }
+                        rectArray.put(rectString + ", " + processOnnx.classes[_result.classIndex]);
                     }
                     //json array 들을 하나의 json object 로 합쳐서 전송한다.
-                    rectJson.put("Fire",fireRect);
-                    rectJson.put("Smoke",smokeRect);
-                    //확률 값도추가해서 넣는다. 80%이상이면 전송
-                    rectJson.put("conf",Math.round(processOnnx.objectThresh * 100) + "%");
+                    rectJson.put("Info", rectArray);
 
                     //비트맵을 원본 크기로 키워야한다. 현재 너비 : 높이 = 1440 : 3100
                     Bitmap sendBitmap = Bitmap.createScaledBitmap(bitmap, rectView.getWidth(), rectView.getHeight(), true);

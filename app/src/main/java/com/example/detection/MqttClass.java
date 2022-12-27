@@ -1,11 +1,18 @@
 package com.example.detection;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.widget.Toast;
 
+import androidx.room.Room;
+
 import com.example.detection.Bluetooth.BluetoothConnect;
+import com.example.detection.DB.RoomDB;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
@@ -17,6 +24,7 @@ import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.StringTokenizer;
 
@@ -24,16 +32,19 @@ import java.util.StringTokenizer;
 public class MqttClass implements MqttCallback {
     private BluetoothConnect bluetoothConnect;
     static String CLIENT_ID = "s21_Ultra";
-    static String SERVER_ADDRESS = "***************************";
+    static String SERVER_ADDRESS = "*****************************";
 
     private final Activity activity;
+    private final Context context;
     private MqttClient mqttClient;
-    static String TOPIC_PREVIEW = "HkPlatform/Camera/Image";
-    static String TOPIC_DETECT = "detect";
+    static String TOPIC_PREVIEW = "camera/update";
+    static String TOPIC_DETECT = "aicms/detect";
     static String TOPIC_CONTROL = "aicms/toCam";
     static String TOPIC_MOTOR = "aicms/controlCam";
+    static String TOPIC_WEBRTC = "call/start";
 
-    public MqttClass(Activity activity) {
+    public MqttClass(Activity activity, Context context) {
+        this.context = context;
         this.activity = activity;
     }
 
@@ -92,50 +103,9 @@ public class MqttClass implements MqttCallback {
     }
 
     //수신받는 메소드
-    public void receive(String topic) {
+    public void receive(String... topics) {
         try {
-            mqttClient.subscribe(topic);
-            mqttClient.setCallback(new MqttCallback() {
-                @Override
-                public void connectionLost(Throwable cause) {
-
-                }
-
-                @Override
-                public void messageArrived(String topic, MqttMessage message) {
-                    //문자를 받으면 사이즈를 변환하거나 기존의 전송 속도를 변경할 수 있다.
-                    String s = message.toString();
-                    //문자열을 자른다. ("scale = 0.5" or "interval = 1")
-                    StringTokenizer st = new StringTokenizer(s);
-                    String scaleOrInterval = st.nextToken();
-                    //첫번째 문자열이 scale 이라면
-                    if (scaleOrInterval.equals("scale")) {
-                        // "="을 제거한다.
-                        st.nextToken();
-                        //이후 문자열을 숫자로 변환한 후 객체 검출시 전송하는 사진의 크기를 수정한다.
-                        CameraActivity.scale = Float.parseFloat(st.nextToken());
-                        //만약 첫번째 문자열이 interval 이라면
-                    } else if (scaleOrInterval.equals("interval")) {
-                        // "="을 제거한다.
-                        st.nextToken();
-                        //이후 문자열을 숫자로 변환한 후 서버로 보내는 미리보기 사진의 시간간격을 수정한다.
-                        CameraActivity.interval_time = Float.parseFloat(st.nextToken());
-                    }
-                }
-
-                @Override
-                public void deliveryComplete(IMqttDeliveryToken token) {
-
-                }
-            });
-        } catch (MqttException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void motorControl() {
-        try {
-            mqttClient.subscribe(TOPIC_MOTOR);
+            mqttClient.subscribe(topics);
             mqttClient.setCallback(new MqttCallback() {
                 @Override
                 public void connectionLost(Throwable cause) {
@@ -144,15 +114,56 @@ public class MqttClass implements MqttCallback {
 
                 @Override
                 public void messageArrived(String topic, MqttMessage message) throws IOException {
-                    //블루투스 쓰레드가 살아있다면
-                    if(bluetoothConnect.checkThread()) {
-                        //블루투스로 전송
-                        bluetoothConnect.write(message.toString());
-                    }else{
-                        //재연결
-                        bluetoothConnect.connectAgain();
-                        //재전송
-                        bluetoothConnect.write(message.toString());
+                    if (topic.equals(MqttClass.TOPIC_CONTROL)) {
+                        //문자를 받으면 사이즈를 변환하거나 기존의 전송 속도를 변경할 수 있다.
+                        String s = message.toString();
+                        //문자열을 자른다. ("scale = 0.5" or "interval = 1")
+                        StringTokenizer st = new StringTokenizer(s);
+                        String scaleOrInterval = st.nextToken();
+                        //첫번째 문자열이 scale 이라면
+                        if (scaleOrInterval.equals("scale")) {
+                            // "="을 제거한다.
+                            st.nextToken();
+                            //이후 문자열을 숫자로 변환한 후 객체 검출시 전송하는 사진의 크기를 수정한다.
+                            CameraActivity.scale = Float.parseFloat(st.nextToken());
+                            //만약 첫번째 문자열이 interval 이라면
+                        } else if (scaleOrInterval.equals("interval")) {
+                            // "="을 제거한다.
+                            st.nextToken();
+                            //이후 문자열을 숫자로 변환한 후 서버로 보내는 미리보기 사진의 시간간격을 수정한다.
+                            CameraActivity.interval_time = Float.parseFloat(st.nextToken());
+                        }
+                        //TOPIC 이 모터제어라면
+                    } else if (topic.equals(MqttClass.TOPIC_MOTOR)) {
+                        //블루투스 쓰레드가 살아있다면
+                        if (bluetoothConnect.checkThread()) {
+                            //블루투스로 전송
+                            bluetoothConnect.write(message.toString());
+                            Log.d("블루투스", message.toString());
+                        } else {
+                            //재연결
+                            bluetoothConnect.connectAgain();
+                            //재전송
+                            bluetoothConnect.write(message.toString());
+                        }
+                        // webRTC 를 하자고 신청이 오면
+                    } else if (topic.equals(MqttClass.TOPIC_WEBRTC)) {
+                        //문자열을 읽어서 현재 내 아이디가 맞는지 확인하고 맞다면 전송을한다.
+                        String msg = message.toString();
+                        int slash = msg.indexOf("/");
+                        //처음 userID
+                        String userID = msg.substring(0, slash);
+                        //뒷 부분은 cameraID
+                        String cameraID = msg.substring(slash + 1);
+                        //만약 카메라 ID가 동일하다면 웹사이트 접속
+                        if (cameraID.equals(RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId())) {
+                            //해당 웹사이트 주소
+                            String url = "*******************************" + userID + "/camera/" + cameraID + "/register";
+                            Intent intent = new Intent(activity, WebVIewActivity.class);
+                            intent.putExtra("url", url);
+                            activity.startActivity(intent);
+                        }
+                        ;
                     }
                 }
 

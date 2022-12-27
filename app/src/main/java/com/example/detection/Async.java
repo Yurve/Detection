@@ -7,6 +7,7 @@ import android.os.SystemClock;
 import android.util.Log;
 
 import com.example.detection.Bluetooth.BluetoothConnect;
+import com.example.detection.DB.ID;
 import com.example.detection.DB.RoomDB;
 
 import org.json.JSONObject;
@@ -34,7 +35,7 @@ public class Async {
     public Async(Activity activity, Context context) {
         this.context = context;
         //MQTT 접속
-        mqttClass = new MqttClass(activity);
+        mqttClass = new MqttClass(activity, context);
         mqttClass.connectMqtt();
         //데이터 처리 클래스
         dataProcess = new DataProcess();
@@ -64,14 +65,20 @@ public class Async {
                         return Observable.just(jsonObject);
                     }
                 }
-
                 //특정 초를 넘겼다면 각종 정보들을 json 에 담는다.
-                jsonObject.put("CameraId", RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId()); //ID 전송
-                jsonObject.put("Date", dataProcess.saveTime());    //현재시간 정보
-                jsonObject.put("Type", "Fire");              //타입이 필요할지..?
-                jsonObject.put("ImageUri", dataProcess.bitmapToString(image));  //base64 image
-                //rect 객체를 받아왔으면 json 에 추가해서 전송한다.
+
+                //객체 검출 전송
                 if (rectJson != null) {
+                    ID id = RoomDB.getInstance(context).userDAO().getAll().get(0);
+                    //UserId
+                    jsonObject.put("UserId", id.getUserId());
+                    //CameraId
+                    jsonObject.put("CameraId", Integer.parseInt(id.getCameraId()));
+                    //Created
+                    jsonObject.put("Created", dataProcess.saveTime());
+                    //Image
+                    jsonObject.put("Image", dataProcess.bitmapToString(image));
+                    //Info
                     //키 값을 반복자로 받아온다.
                     Iterator<String> iterator = rectJson.keys();
                     while (iterator.hasNext()) {
@@ -79,7 +86,12 @@ public class Async {
                         String name = iterator.next();
                         jsonObject.put(name, rectJson.get(name));
                     }
+                    // 썸네일 전송
+                } else {
+                    jsonObject.put("Id", Integer.parseInt(RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId()));
+                    jsonObject.put("Thumbnail", dataProcess.bitmapToString(image));
                 }
+
                 return Observable.just(jsonObject);
             }
         });
@@ -113,17 +125,12 @@ public class Async {
     }
 
     //mqtt 수신
-    public void receiveMQTT(String topic) {
-        mqttClass.receive(topic);
-    }
-
-    //mqtt 모터 제어정보 수신
-    public void motorControl(){
-        mqttClass.motorControl();
+    public void receiveMQTT(String... topics) {
+        mqttClass.receive(topics);
     }
 
     //mqtt 블루투스 클래스 전달
-    public void getBluetoothConnect(BluetoothConnect bluetoothConnect){
+    public void getBluetoothConnect(BluetoothConnect bluetoothConnect) {
         mqttClass.setBluetoothConnect(bluetoothConnect);
     }
 

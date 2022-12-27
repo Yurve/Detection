@@ -15,6 +15,9 @@ public class ID implements Serializable {
     @ColumnInfo(name = "camera_id")
     private String cameraId;
 
+    @ColumnInfo(name = "user_id")
+    private String userId;
+
     public int getUid() {
         return uid;
     }
@@ -30,4 +33,13 @@ public class ID implements Serializable {
     public void setCameraId(String cameraId) {
         this.cameraId = cameraId;
     }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
 }

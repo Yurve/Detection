@@ -2,4 +2,5 @@
     <string name="app_name">Detection</string>
     <string name="camera_id">Camera_ID</string>
     <string name="save_and_start">저장 및 실행</string>
+    <string name="scan_QR">QR코드 스캔하기</string>
 </resources>

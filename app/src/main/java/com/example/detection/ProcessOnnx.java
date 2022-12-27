@@ -149,8 +149,8 @@ public class ProcessOnnx {
 
         //비트맵은 현재 회전되어있는 상태, 모델에 넣으려면 각도를 돌리고 넣어야 한다.
         Matrix matrix = new Matrix();
-        //90도로 돌리고 넣어야한다.
-        matrix.postRotate(90.0f);
+        //세로모드의 경우 90도로 돌리고 넣어야한다. 가로모드는 수정할 필요 X
+        matrix.postRotate(0);
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
     }
 

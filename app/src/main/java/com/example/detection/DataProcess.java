@@ -1,7 +1,6 @@
 package com.example.detection;
 
 import android.graphics.Bitmap;
-import android.os.SystemClock;
 import android.util.Base64;
 
 import java.io.ByteArrayOutputStream;
