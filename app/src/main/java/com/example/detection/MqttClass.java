@@ -3,13 +3,10 @@ package com.example.detection;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
-
-import androidx.room.Room;
 
 import com.example.detection.Bluetooth.BluetoothConnect;
 import com.example.detection.DB.RoomDB;
@@ -21,10 +18,10 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.StringTokenizer;
 
@@ -32,7 +29,7 @@ import java.util.StringTokenizer;
 public class MqttClass implements MqttCallback {
     private BluetoothConnect bluetoothConnect;
     static String CLIENT_ID = "s21_Ultra";
-    static String SERVER_ADDRESS = "*****************************";
+    static String SERVER_ADDRESS = "***********************";
 
     private final Activity activity;
     private final Context context;
@@ -113,7 +110,7 @@ public class MqttClass implements MqttCallback {
                 }
 
                 @Override
-                public void messageArrived(String topic, MqttMessage message) throws IOException {
+                public void messageArrived(String topic, MqttMessage message) throws IOException, JSONException {
                     if (topic.equals(MqttClass.TOPIC_CONTROL)) {
                         //문자를 받으면 사이즈를 변환하거나 기존의 전송 속도를 변경할 수 있다.
                         String s = message.toString();
@@ -137,8 +134,13 @@ public class MqttClass implements MqttCallback {
                     } else if (topic.equals(MqttClass.TOPIC_MOTOR)) {
                         //블루투스 쓰레드가 살아있다면
                         if (bluetoothConnect.checkThread()) {
-                            //블루투스로 전송
-                            bluetoothConnect.write(message.toString());
+                            //json 객체로 읽기
+                            JSONObject jsonObject = new JSONObject(new String(message.getPayload()));
+                            if(jsonObject.get("CameraId").equals(RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId())){
+                                String msg = (String) jsonObject.get("Degree");
+                                //블루투스로 각도값 전송
+                                bluetoothConnect.write(msg);
+                            }
                             Log.d("블루투스", message.toString());
                         } else {
                             //재연결
@@ -158,12 +160,11 @@ public class MqttClass implements MqttCallback {
                         //만약 카메라 ID가 동일하다면 웹사이트 접속
                         if (cameraID.equals(RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId())) {
                             //해당 웹사이트 주소
-                            String url = "*******************************" + userID + "/camera/" + cameraID + "/register";
+                            String url = "*****************************************";
                             Intent intent = new Intent(activity, WebVIewActivity.class);
                             intent.putExtra("url", url);
                             activity.startActivity(intent);
                         }
-                        ;
                     }
                 }
 

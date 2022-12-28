@@ -7,7 +7,6 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.widget.Toast;
 
-import androidx.annotation.RequiresApi;
 import androidx.core.app.ActivityCompat;
 
 import java.util.ArrayList;
@@ -28,6 +27,9 @@ public class PermissionSupport {
         ArrayList<String> permission = new ArrayList<>();
         permission.add(Manifest.permission.CAMERA);
         permission.add(Manifest.permission.INTERNET);
+        permission.add(Manifest.permission.RECORD_AUDIO);
+        permission.add(Manifest.permission.MODIFY_AUDIO_SETTINGS);
+
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
             permission.add(Manifest.permission.BLUETOOTH);
             permission.add(Manifest.permission.BLUETOOTH_CONNECT);

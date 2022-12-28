@@ -261,6 +261,12 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onPause() {
+        Log.d("pause","퍼즈일까용?");
+        super.onPause();
+    }
+
+    @Override
     protected void onDestroy() {
         async.close();
         try {
