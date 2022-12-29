@@ -1,5 +1,7 @@
 package com.example.detection.DB;
 
+import android.bluetooth.BluetoothDevice;
+
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
@@ -17,6 +19,9 @@ public class ID implements Serializable {
 
     @ColumnInfo(name = "user_id")
     private String userId;
+
+    @ColumnInfo(name = "bluetooth_address")
+    private String address;
 
     public int getUid() {
         return uid;
@@ -42,4 +47,11 @@ public class ID implements Serializable {
         this.userId = userId;
     }
 
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
 }

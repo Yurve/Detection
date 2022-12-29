@@ -130,7 +130,7 @@ public class Async {
     }
 
     //mqtt 블루투스 클래스 전달
-    public void getBluetoothConnect(BluetoothConnect bluetoothConnect) {
+    public void setBluetoothConnect(BluetoothConnect bluetoothConnect) {
         mqttClass.setBluetoothConnect(bluetoothConnect);
     }
 

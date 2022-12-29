@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.detection.Bluetooth.BluetoothConnect;
 import com.example.detection.DB.ID;
 import com.example.detection.DB.RoomDB;
 import com.google.zxing.integration.android.IntentIntegrator;
@@ -20,7 +21,9 @@ import com.google.zxing.integration.android.IntentResult;
 public class MainActivity extends AppCompatActivity {
     private String cameraID;
     private String userID;
+    private String bluetoothAddress;
     private EditText editText;
+    private BluetoothConnect bluetoothConnect;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,10 +49,15 @@ public class MainActivity extends AppCompatActivity {
             if (cameraID == null) {
                 id.setCameraId(editText.getText().toString().trim());
                 id.setUserId(roomDB.userDAO().getAll().get(0).getUserId());
+                id.setAddress(roomDB.userDAO().getAll().get(0).getAddress());
                 //QR 코드를 통해 새로운 cameraID를 받는 경우
             } else {
                 id.setCameraId(cameraID.trim());
                 id.setUserId(userID);
+
+                //페어링된 기기 주소 가져오기
+                bluetoothAddress = bluetoothConnect.getAddress();
+                id.setAddress(bluetoothAddress.trim());
             }
             //기존의 데이터를 삭제한다. 카메라 id 를 1개로 유지하기 위해서 이다.
             if (roomDB.userDAO().getAll().size() > 0) {
@@ -70,6 +78,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         IntentResult result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+        // 초기유저 or 재설정 
+
         //qr 코드가 스캔되면
         if (result != null) {
             if (result.getContents() != null) {
@@ -80,6 +90,13 @@ public class MainActivity extends AppCompatActivity {
                 cameraID = id.substring(slash + 1);
                 editText.setText(this.cameraID);
             }
+
+            //라즈베리파이와 블루투스 연결
+            bluetoothConnect = new BluetoothConnect(this);
+            //블루투스 켜기
+            bluetoothConnect.bluetoothOn();
+            //페어링된 기기 알람 띄우기
+            bluetoothConnect.listPairedDevices();
         }
         super.onActivityResult(requestCode, resultCode, data);
     }

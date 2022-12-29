@@ -8,6 +8,8 @@ import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
 
+import androidx.room.Room;
+
 import com.example.detection.Bluetooth.BluetoothConnect;
 import com.example.detection.DB.RoomDB;
 
@@ -29,7 +31,7 @@ import java.util.StringTokenizer;
 public class MqttClass implements MqttCallback {
     private BluetoothConnect bluetoothConnect;
     static String CLIENT_ID = "s21_Ultra";
-    static String SERVER_ADDRESS = "***********************";
+    static String SERVER_ADDRESS = "*************************";
 
     private final Activity activity;
     private final Context context;
@@ -52,12 +54,12 @@ public class MqttClass implements MqttCallback {
 
     public void connectMqtt() {
         MqttConnectOptions options = new MqttConnectOptions();
-        //만약 끊겼다가 재연결 될 때 이전의 상태를 유지할 것인지 다시 새로운 연결을 시도 할 것인지 결정. false == 유지
+        //만약 끊겼다가 재연결 될 때 이전의 상태를 유지할 것인지 다시 새로운 연결을 시도 할 것인지 결정. false == 유지 true로 변경해보자
         options.setCleanSession(false);
         //만약 특정 시간동안 보내는 게 없으면 끊어진다. 그 특정시간을 최대로 설정.
         options.setKeepAliveInterval(Integer.MAX_VALUE);
         //시간이 지나 연결이 멈추면 바로 재연결을 시도한다.
-        //options.setAutomaticReconnect(true);
+        options.setAutomaticReconnect(true);
 
         MqttDefaultFilePersistence persistence = new MqttDefaultFilePersistence(activity.getFilesDir().getAbsolutePath());
         try {
@@ -75,7 +77,7 @@ public class MqttClass implements MqttCallback {
     //만약 연결에 실패했다면 다시 연결을 시도한다.
     @Override
     public void connectionLost(Throwable cause) {
-        connectMqtt();
+        //connectMqtt();
     }
 
     @Override
@@ -106,7 +108,7 @@ public class MqttClass implements MqttCallback {
             mqttClient.setCallback(new MqttCallback() {
                 @Override
                 public void connectionLost(Throwable cause) {
-
+                    cause.printStackTrace();
                 }
 
                 @Override
@@ -133,20 +135,27 @@ public class MqttClass implements MqttCallback {
                         //TOPIC 이 모터제어라면
                     } else if (topic.equals(MqttClass.TOPIC_MOTOR)) {
                         //블루투스 쓰레드가 살아있다면
-                        if (bluetoothConnect.checkThread()) {
+                        if (bluetoothConnect != null && bluetoothConnect.checkThread()) {
                             //json 객체로 읽기
                             JSONObject jsonObject = new JSONObject(new String(message.getPayload()));
-                            if(jsonObject.get("CameraId").equals(RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId())){
-                                String msg = (String) jsonObject.get("Degree");
+                            if ((jsonObject.get("CameraId") + "").equals(RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId())) {
+                                String msg = jsonObject.get("Degree") + "";
                                 //블루투스로 각도값 전송
                                 bluetoothConnect.write(msg);
                             }
                             Log.d("블루투스", message.toString());
                         } else {
                             //재연결
-                            bluetoothConnect.connectAgain();
+                            BluetoothConnect connect = new BluetoothConnect(context);
+                            connect.bluetoothConnect();
                             //재전송
-                            bluetoothConnect.write(message.toString());
+                            //json 객체로 읽기
+                            JSONObject jsonObject = new JSONObject(new String(message.getPayload()));
+                            if (jsonObject.get("CameraId").equals(RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId())) {
+                                String msg = (String) jsonObject.get("Degree");
+                                //블루투스로 각도값 전송
+                                connect.write(msg);
+                            }
                         }
                         // webRTC 를 하자고 신청이 오면
                     } else if (topic.equals(MqttClass.TOPIC_WEBRTC)) {
@@ -160,7 +169,7 @@ public class MqttClass implements MqttCallback {
                         //만약 카메라 ID가 동일하다면 웹사이트 접속
                         if (cameraID.equals(RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId())) {
                             //해당 웹사이트 주소
-                            String url = "*****************************************";
+                            String url = "***************************************";
                             Intent intent = new Intent(activity, WebVIewActivity.class);
                             intent.putExtra("url", url);
                             activity.startActivity(intent);

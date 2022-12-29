@@ -7,6 +7,8 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.widget.Toast;
 
+import com.example.detection.DB.RoomDB;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,12 +16,13 @@ import java.util.Set;
 import java.util.UUID;
 
 //블루투스를 연결하는 클래스 Serializable 를 상속받아 intent 로 전달 가능하게 함.
-public class BluetoothConnect  {
+public class BluetoothConnect {
     private final Context context;
     private BluetoothAdapter bluetoothAdapter;  //블루투스 실행을 위한 클래스. 이 객체를 통해 장치 검색, 페어링된 기기 불러오기 등을 할 수 있음.
     private Set<BluetoothDevice> pairedBluetoothDevices; //현재 페어링된 기기 목록을 Set 형태로 저장
     private ConnectedBluetoothThread connectedBluetoothThread; //블루투스 쓰레드 클래스
-    private BluetoothDevice bluetoothDevice; //블루투스 연결된 장치
+    private String address; //블루투스로 연결할 장치의 주소
+    //private BluetoothDevice bluetoothDevice; //블루투스 연결된 장치
 
     final private static UUID BT_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); //블루투스 범용 고유 식별자
 
@@ -71,18 +74,25 @@ public class BluetoothConnect  {
         //선택된 디바이스의 이름과 페어링 된 기기목록과 이름이 일치하면 연결
         for (BluetoothDevice device : pairedBluetoothDevices) {
             if (selectedDeviceName.equals(device.getName())) {
-                bluetoothDevice = device;
+                //bluetoothDevice = device;
+                //BluetoothDevice 의 주소 저장
+                address = device.getAddress();
                 break;
             }
         }
+    }
+
+    public void bluetoothConnect() {
         try {
+            String address = RoomDB.getInstance(context).userDAO().getAll().get(0).getAddress();
             //소켓을 연결하고 블루투스 스레드에서 시작
-            BluetoothSocket bluetoothSocket = bluetoothDevice.createInsecureRfcommSocketToServiceRecord(BT_UUID);
+            BluetoothSocket bluetoothSocket = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address)
+                    .createInsecureRfcommSocketToServiceRecord(BT_UUID);
             bluetoothSocket.connect();
             connectedBluetoothThread = new ConnectedBluetoothThread(bluetoothSocket);
             connectedBluetoothThread.start();
-            Toast.makeText(context, "블루투스 연결 성공", Toast.LENGTH_SHORT).show();
-        } catch (IOException e) {
+            Toast.makeText(context, "Bluetooth 연결 성공!", Toast.LENGTH_SHORT).show();
+        } catch (IOException | SecurityException e) {
             e.printStackTrace();
         }
     }
@@ -102,13 +112,7 @@ public class BluetoothConnect  {
         return connectedBluetoothThread != null;
     }
 
-    //블루투스 재연결
-    public void connectAgain() throws SecurityException, IOException {
-        BluetoothSocket bluetoothSocket = bluetoothDevice.createInsecureRfcommSocketToServiceRecord(BT_UUID);
-        bluetoothSocket.connect();
-        connectedBluetoothThread = new ConnectedBluetoothThread(bluetoothSocket);
-        connectedBluetoothThread.start();
+    public String getAddress() {
+        return address;
     }
-
-
 }

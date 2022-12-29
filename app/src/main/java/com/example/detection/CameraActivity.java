@@ -52,7 +52,7 @@ public class CameraActivity extends AppCompatActivity {
     private Long timeCount_1 = 0L;  //시간 비교
     private Long timeCount_2 = 0L;  //시간 비교
     static public float scale = 1f; //미리보기 사진의 크기를 수정할 수 있다.
-    static public float interval_time = 0.5f; //미리보기 사진의 전송 시간차를 수정할 수 있다.
+    static public float interval_time = 0.3f; //미리보기 사진의 전송 시간차를 수정할 수 있다.
 
 
     @Override
@@ -96,12 +96,10 @@ public class CameraActivity extends AppCompatActivity {
     public void startBluetooth() {
         //블루투스 연결 객체 생성
         bluetoothConnect = new BluetoothConnect(this);
-        //블루투스 켜기
-        bluetoothConnect.bluetoothOn();
-        //페어링된 기기 알람 띄우기 
-        bluetoothConnect.listPairedDevices();
+        //블루투스 연결
+        bluetoothConnect.bluetoothConnect();
         //블루투스 클래스 mqtt 클래스에 전송
-        async.getBluetoothConnect(bluetoothConnect);
+        async.setBluetoothConnect(bluetoothConnect);
     }
 
 
@@ -258,12 +256,6 @@ public class CameraActivity extends AppCompatActivity {
         } catch (OrtException e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    protected void onPause() {
-        Log.d("pause","퍼즈일까용?");
-        super.onPause();
     }
 
     @Override
