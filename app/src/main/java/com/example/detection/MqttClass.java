@@ -30,7 +30,7 @@ import java.util.StringTokenizer;
 public class MqttClass implements MqttCallback {
     private BluetoothConnect bluetoothConnect;
     static public String CLIENT_ID = "android";
-    static public String SERVER_ADDRESS = "*****************************";
+    static public String SERVER_ADDRESS = "********************";
 
     private final Activity activity;
     private final Context context;
@@ -151,6 +151,9 @@ public class MqttClass implements MqttCallback {
                         // webRTC 를 하자고 신청이 오면
                     } else if (topic.equals(MqttClass.TOPIC_WEBRTC)) {
                         //문자열을 읽어서 현재 내 아이디가 맞는지 확인하고 맞다면 전송을한다.
+//                        JSONObject jsonObject = new JSONObject(new String(message.getPayload()));
+//                        String userId = (String) jsonObject.get("UserId");
+//                        int cameraId = (int) jsonObject.get("CameraId");
                         String msg = message.toString();
                         int slash = msg.indexOf("/");
                         //처음 userID
@@ -159,7 +162,7 @@ public class MqttClass implements MqttCallback {
                         String cameraID = msg.substring(slash + 1);
                         //만약 카메라 ID가 동일하다면 웹사이트 접속
                         if (cameraID.equals(RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId())) {
-                            //해당 웹사이트 주소
+                            //해당 웹사이트 주소 이후
                             String url = "*********************************";
                             Intent intent = new Intent(activity, WebVIewActivity.class);
                             intent.putExtra("url", url);

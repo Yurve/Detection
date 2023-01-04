@@ -3,12 +3,15 @@ package com.example.detection;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
+import android.net.http.SslError;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.webkit.PermissionRequest;
+import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -37,6 +40,15 @@ public class WebVIewActivity extends AppCompatActivity {
         webSettings.setJavaScriptEnabled(true);
         // HTML 5 사양의 일부
         webSettings.setDomStorageEnabled(true);
+
+        webView.setWebViewClient(new WebViewClient(){
+            @SuppressLint("WebViewClientOnReceivedSslError")
+            @Override
+            public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+                // 인증서 오류를 해결하지 않고 웹뷰로 접속을 진행
+                handler.proceed();
+            }
+        });
 
         //웹뷰로 띄운 웹 페이지를 컨트롤하는 함수, 크롬에 맞춰  쾌적한 환경조성을 위한 세팅으로 보면 된다.
         webView.setWebChromeClient(new WebChromeClient() {
