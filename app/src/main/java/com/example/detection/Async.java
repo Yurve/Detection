@@ -69,6 +69,7 @@ public class Async {
 
                 //객체 검출 전송
                 if (rectJson != null) {
+
                     ID id = RoomDB.getInstance(context).userDAO().getAll().get(0);
                     //UserId
                     jsonObject.put("UserId", id.getUserId());
@@ -78,6 +79,7 @@ public class Async {
                     jsonObject.put("Created", dataProcess.saveTime());
                     //Image
                     jsonObject.put("Image", dataProcess.bitmapToString(image));
+
                     //Info
                     //키 값을 반복자로 받아온다.
                     Iterator<String> iterator = rectJson.keys();
@@ -88,7 +90,7 @@ public class Async {
                     }
                     // 썸네일 전송
                 } else {
-                    jsonObject.put("Id", Integer.parseInt(RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId()));
+                    jsonObject.put("CameraId", Integer.parseInt(RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId()));
                     jsonObject.put("Thumbnail", dataProcess.bitmapToString(image));
                 }
 
@@ -138,6 +140,5 @@ public class Async {
         disposable.clear();
         mqttClass.closeMqtt();
     }
-
 
 }

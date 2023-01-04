@@ -52,7 +52,7 @@ public class CameraActivity extends AppCompatActivity {
     private Long timeCount_1 = 0L;  //시간 비교
     private Long timeCount_2 = 0L;  //시간 비교
     static public float scale = 1f; //미리보기 사진의 크기를 수정할 수 있다.
-    static public float interval_time = 0.3f; //미리보기 사진의 전송 시간차를 수정할 수 있다.
+    static public float interval_time = 0.5f; //미리보기 사진의 전송 시간차를 수정할 수 있다.
 
 
     @Override
@@ -86,7 +86,7 @@ public class CameraActivity extends AppCompatActivity {
         }
 
         //서버로 부터 제어 정보 수신 및 모터 제어 정보 수신, WebRTC 신호 정보 수신
-        async.receiveMQTT(MqttClass.TOPIC_CONTROL, MqttClass.TOPIC_MOTOR, MqttClass.TOPIC_WEBRTC);
+        async.receiveMQTT(MqttClass.TOPIC_CONTROL, MqttClass.TOPIC_MOTOR, MqttClass.TOPIC_WEBRTC,MqttClass.TOPIC_WEBRTC_FIN);
 
         //카메라 켜기
         startCamera();
@@ -220,12 +220,18 @@ public class CameraActivity extends AppCompatActivity {
                         rect.right = (int) (_result.rect.right * scaleX);
                         rect.top = (int) (_result.rect.top * scaleY);
                         rect.bottom = (int) (_result.rect.bottom * scaleY);
-                        String rectString = rect.left + ", " + rect.right + ", " + rect.top + ", " + rect.bottom;
+                        // 검출된 정보들을 json 객체로 만들어서 array 의 형태로 변환해서 넣는다.
+                        JSONObject infoJson = new JSONObject();
+                        infoJson.put("Left",rect.left);
+                        infoJson.put("Right",rect.right);
+                        infoJson.put("Top",rect.top);
+                        infoJson.put("Bottom",rect.bottom);
+                        infoJson.put("Label",processOnnx.classes[_result.classIndex]);
                         //rect 객체들과 해당되는 클래스 이름 (화재 or 연기)를  json Array 에 담는다.
-                        rectArray.put(rectString + ", " + processOnnx.classes[_result.classIndex]);
+                        rectArray.put(infoJson);
                     }
                     //json array 들을 하나의 json object 로 합쳐서 전송한다.
-                    rectJson.put("Info", rectArray);
+                    rectJson.put("EventDetails", rectArray);
 
                     //비트맵을 원본 크기로 키워야한다. 현재 너비 : 높이 = 1440 : 3100
                     Bitmap sendBitmap = Bitmap.createScaledBitmap(bitmap, rectView.getWidth(), rectView.getHeight(), true);

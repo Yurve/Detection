@@ -3,6 +3,7 @@ package com.example.detection;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -35,6 +36,9 @@ public class MainActivity extends AppCompatActivity {
 
         //권한 확인하기
         permissionCheck();
+
+        //자동꺼짐 해제
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         //DB 생성
         RoomDB roomDB = RoomDB.getInstance(this);

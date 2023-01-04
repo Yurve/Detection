@@ -8,9 +8,8 @@ import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
 
-import androidx.room.Room;
-
 import com.example.detection.Bluetooth.BluetoothConnect;
+import com.example.detection.DB.ID;
 import com.example.detection.DB.RoomDB;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
@@ -30,17 +29,19 @@ import java.util.StringTokenizer;
 //서버로 사진 정보 전송하는 MQTT 클래스
 public class MqttClass implements MqttCallback {
     private BluetoothConnect bluetoothConnect;
-    static String CLIENT_ID = "s21_Ultra";
-    static String SERVER_ADDRESS = "*************************";
+    static public String CLIENT_ID = "android";
+    static public String SERVER_ADDRESS = "*****************************";
 
     private final Activity activity;
     private final Context context;
     private MqttClient mqttClient;
-    static String TOPIC_PREVIEW = "camera/update";
-    static String TOPIC_DETECT = "aicms/detect";
-    static String TOPIC_CONTROL = "aicms/toCam";
-    static String TOPIC_MOTOR = "aicms/controlCam";
-    static String TOPIC_WEBRTC = "call/start";
+    static public String TOPIC_PREVIEW = "camera/update/thumbnail";
+    static public String TOPIC_DETECT = "event/create";
+    static public String TOPIC_CONTROL = "aicms/toCam";
+    static public String TOPIC_MOTOR = "camera/update/degree/syn";
+    static public String TOPIC_MOTOR_ACK = "camera/update/degree/ack";
+    static public String TOPIC_WEBRTC = "call/start";
+    static public String TOPIC_WEBRTC_FIN = "call/stop";
 
     public MqttClass(Activity activity, Context context) {
         this.context = context;
@@ -77,7 +78,7 @@ public class MqttClass implements MqttCallback {
     //만약 연결에 실패했다면 다시 연결을 시도한다.
     @Override
     public void connectionLost(Throwable cause) {
-        //connectMqtt();
+
     }
 
     @Override
@@ -134,6 +135,7 @@ public class MqttClass implements MqttCallback {
                         }
                         //TOPIC 이 모터제어라면
                     } else if (topic.equals(MqttClass.TOPIC_MOTOR)) {
+                        Log.d("블루투스", message.toString());
                         //블루투스 쓰레드가 살아있다면
                         if (bluetoothConnect != null && bluetoothConnect.checkThread()) {
                             //json 객체로 읽기
@@ -142,19 +144,8 @@ public class MqttClass implements MqttCallback {
                                 String msg = jsonObject.get("Degree") + "";
                                 //블루투스로 각도값 전송
                                 bluetoothConnect.write(msg);
-                            }
-                            Log.d("블루투스", message.toString());
-                        } else {
-                            //재연결
-                            BluetoothConnect connect = new BluetoothConnect(context);
-                            connect.bluetoothConnect();
-                            //재전송
-                            //json 객체로 읽기
-                            JSONObject jsonObject = new JSONObject(new String(message.getPayload()));
-                            if (jsonObject.get("CameraId").equals(RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId())) {
-                                String msg = (String) jsonObject.get("Degree");
-                                //블루투스로 각도값 전송
-                                connect.write(msg);
+                                //제어 정보를 수정했다고 다시 서버로 알림
+                                publish(MqttClass.TOPIC_MOTOR_ACK,jsonObject);
                             }
                         }
                         // webRTC 를 하자고 신청이 오면
@@ -169,10 +160,21 @@ public class MqttClass implements MqttCallback {
                         //만약 카메라 ID가 동일하다면 웹사이트 접속
                         if (cameraID.equals(RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId())) {
                             //해당 웹사이트 주소
-                            String url = "***************************************";
+                            String url = "*********************************";
                             Intent intent = new Intent(activity, WebVIewActivity.class);
                             intent.putExtra("url", url);
                             activity.startActivity(intent);
+                        }
+                        // webRTC 종료 요청
+                    } else if (topic.equals(MqttClass.TOPIC_WEBRTC_FIN)) {
+                        //문자열을 읽어서 내 아이디가 맞다면 webRTC 를 종료한다.
+                        JSONObject jsonObject = new JSONObject(new String(message.getPayload()));
+                        String userId = (String) jsonObject.get("UserId");
+                        int cameraId = (int) jsonObject.get("CameraId");
+                        ID id = RoomDB.getInstance(context).userDAO().getAll().get(0);
+                        if (userId.equals(id.getUserId()) && cameraId == Integer.parseInt(id.getCameraId())) {
+                            WebVIewActivity webVIewActivity = (WebVIewActivity) WebVIewActivity.webViewActivity;
+                            webVIewActivity.finish();
                         }
                     }
                 }
@@ -187,6 +189,7 @@ public class MqttClass implements MqttCallback {
         }
     }
 
+
     //앱 종료시 종료를 해줘야한다.
     public void closeMqtt() {
         try {
@@ -197,4 +200,5 @@ public class MqttClass implements MqttCallback {
         }
 
     }
+
 }

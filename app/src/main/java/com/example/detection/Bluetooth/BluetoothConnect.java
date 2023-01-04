@@ -22,7 +22,6 @@ public class BluetoothConnect {
     private Set<BluetoothDevice> pairedBluetoothDevices; //현재 페어링된 기기 목록을 Set 형태로 저장
     private ConnectedBluetoothThread connectedBluetoothThread; //블루투스 쓰레드 클래스
     private String address; //블루투스로 연결할 장치의 주소
-    //private BluetoothDevice bluetoothDevice; //블루투스 연결된 장치
 
     final private static UUID BT_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"); //블루투스 범용 고유 식별자
 
@@ -111,6 +110,7 @@ public class BluetoothConnect {
     public boolean checkThread() {
         return connectedBluetoothThread != null;
     }
+
 
     public String getAddress() {
         return address;

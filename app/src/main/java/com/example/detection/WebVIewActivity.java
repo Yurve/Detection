@@ -1,6 +1,7 @@
 package com.example.detection;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.KeyEvent;
@@ -12,7 +13,10 @@ import android.webkit.WebView;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class WebVIewActivity extends AppCompatActivity {
-    WebView webView;
+    private WebView webView;
+
+    @SuppressLint("StaticFieldLeak")
+    public static Activity webViewActivity;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -20,6 +24,9 @@ public class WebVIewActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_web_view);
         webView = findViewById(R.id.webView);
+
+        webViewActivity = WebVIewActivity.this;
+
         Intent intent = getIntent();
         String url = intent.getStringExtra("url");
 
@@ -30,7 +37,7 @@ public class WebVIewActivity extends AppCompatActivity {
         webSettings.setJavaScriptEnabled(true);
         // HTML 5 사양의 일부
         webSettings.setDomStorageEnabled(true);
-        
+
         //웹뷰로 띄운 웹 페이지를 컨트롤하는 함수, 크롬에 맞춰  쾌적한 환경조성을 위한 세팅으로 보면 된다.
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
@@ -54,4 +61,17 @@ public class WebVIewActivity extends AppCompatActivity {
         return super.onKeyDown(keyCode, event);
     }
 
+    @Override
+    protected void onPause() {
+        //해당 액티비티가 실행중이 아니라면 스트리밍도 일시정지
+        webView.onPause();
+        super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        //웹뷰가 가진 리소스를 모두 해제
+        webView.destroy();
+        super.onDestroy();
+    }
 }

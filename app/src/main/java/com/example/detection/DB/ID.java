@@ -1,7 +1,5 @@
 package com.example.detection.DB;
 
-import android.bluetooth.BluetoothDevice;
-
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;

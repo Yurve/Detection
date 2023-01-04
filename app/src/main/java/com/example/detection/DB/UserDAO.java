@@ -5,8 +5,6 @@ import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.Query;
 
-import com.example.detection.DB.ID;
-
 import java.util.List;
 
 //데이터 액세스 객체(DAO) Data Access Object
