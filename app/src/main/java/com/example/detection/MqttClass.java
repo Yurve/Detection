@@ -30,7 +30,7 @@ import java.util.StringTokenizer;
 public class MqttClass implements MqttCallback {
     private BluetoothConnect bluetoothConnect;
     static public String CLIENT_ID = "android";
-    static public String SERVER_ADDRESS = "********************";
+    static public String SERVER_ADDRESS = "********************";;
 
     private final Activity activity;
     private final Context context;
@@ -55,12 +55,10 @@ public class MqttClass implements MqttCallback {
 
     public void connectMqtt() {
         MqttConnectOptions options = new MqttConnectOptions();
-        //만약 끊겼다가 재연결 될 때 이전의 상태를 유지할 것인지 다시 새로운 연결을 시도 할 것인지 결정. false == 유지 true로 변경해보자
+        //만약 끊겼다가 재연결 될 때 이전의 상태를 유지할 것인지 다시 새로운 연결을 시도 할 것인지 결정.
         options.setCleanSession(false);
         //만약 특정 시간동안 보내는 게 없으면 끊어진다. 그 특정시간을 최대로 설정.
         options.setKeepAliveInterval(Integer.MAX_VALUE);
-        //시간이 지나 연결이 멈추면 바로 재연결을 시도한다.
-        options.setAutomaticReconnect(true);
 
         MqttDefaultFilePersistence persistence = new MqttDefaultFilePersistence(activity.getFilesDir().getAbsolutePath());
         try {
@@ -70,6 +68,9 @@ public class MqttClass implements MqttCallback {
             Handler handler = new Handler(Looper.getMainLooper());
             handler.post(() -> Toast.makeText(activity, "mqtt 연결 성공!", Toast.LENGTH_SHORT).show());
 
+            //mqttClient 클래스 전송
+            SupportMqtt supportMqtt = new SupportMqtt();
+            supportMqtt.setMqttClient(mqttClient);
         } catch (MqttException e) {
             e.printStackTrace();
         }
@@ -151,17 +152,11 @@ public class MqttClass implements MqttCallback {
                         // webRTC 를 하자고 신청이 오면
                     } else if (topic.equals(MqttClass.TOPIC_WEBRTC)) {
                         //문자열을 읽어서 현재 내 아이디가 맞는지 확인하고 맞다면 전송을한다.
-//                        JSONObject jsonObject = new JSONObject(new String(message.getPayload()));
-//                        String userId = (String) jsonObject.get("UserId");
-//                        int cameraId = (int) jsonObject.get("CameraId");
-                        String msg = message.toString();
-                        int slash = msg.indexOf("/");
-                        //처음 userID
-                        String userID = msg.substring(0, slash);
-                        //뒷 부분은 cameraID
-                        String cameraID = msg.substring(slash + 1);
+                        JSONObject jsonObject = new JSONObject(new String(message.getPayload()));
+                        String userId = (String) jsonObject.get("UserId");
+                        int cameraId = (int) jsonObject.get("CameraId");
                         //만약 카메라 ID가 동일하다면 웹사이트 접속
-                        if (cameraID.equals(RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId())) {
+                        if ((cameraId+"").equals(RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId())) {
                             //해당 웹사이트 주소 이후
                             String url = "*********************************";
                             Intent intent = new Intent(activity, WebVIewActivity.class);
