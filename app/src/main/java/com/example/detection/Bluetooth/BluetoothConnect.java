@@ -7,6 +7,7 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.widget.Toast;
 
+import com.example.detection.DB.ID;
 import com.example.detection.DB.RoomDB;
 
 import java.io.IOException;
@@ -83,12 +84,14 @@ public class BluetoothConnect {
 
     public void bluetoothConnect() {
         try {
-            String address = RoomDB.getInstance(context).userDAO().getAll().get(0).getAddress();
+            ID id = RoomDB.getInstance(context).userDAO().getAll().get(0);
+            String address = id.getAddress();
             //소켓을 연결하고 블루투스 스레드에서 시작
             BluetoothSocket bluetoothSocket = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address)
                     .createInsecureRfcommSocketToServiceRecord(BT_UUID);
             bluetoothSocket.connect();
-            connectedBluetoothThread = new ConnectedBluetoothThread(bluetoothSocket);
+            String cameraId = id.getCameraId();
+            connectedBluetoothThread = new ConnectedBluetoothThread(bluetoothSocket,cameraId);
             connectedBluetoothThread.start();
             Toast.makeText(context, "Bluetooth 연결 성공!", Toast.LENGTH_SHORT).show();
         } catch (IOException | SecurityException e) {

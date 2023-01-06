@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.widget.Toast;
 
 import com.example.detection.Bluetooth.BluetoothConnect;
@@ -30,7 +29,7 @@ import java.util.StringTokenizer;
 public class MqttClass implements MqttCallback {
     private BluetoothConnect bluetoothConnect;
     static public String CLIENT_ID = "android";
-    static public String SERVER_ADDRESS = "********************";;
+    static public String SERVER_ADDRESS = "***************************";
 
     private final Activity activity;
     private final Context context;
@@ -62,15 +61,14 @@ public class MqttClass implements MqttCallback {
 
         MqttDefaultFilePersistence persistence = new MqttDefaultFilePersistence(activity.getFilesDir().getAbsolutePath());
         try {
-            mqttClient = new MqttClient(SERVER_ADDRESS, CLIENT_ID, persistence);
+            mqttClient = new MqttClient("tcp://" + SERVER_ADDRESS + ":8085", CLIENT_ID, persistence);
             mqttClient.setCallback(this);
             mqttClient.connect(options);
             Handler handler = new Handler(Looper.getMainLooper());
             handler.post(() -> Toast.makeText(activity, "mqtt 연결 성공!", Toast.LENGTH_SHORT).show());
 
             //mqttClient 클래스 전송
-            SupportMqtt supportMqtt = new SupportMqtt();
-            supportMqtt.setMqttClient(mqttClient);
+            SupportMqtt.getInstance().setMqttClient(mqttClient);
         } catch (MqttException e) {
             e.printStackTrace();
         }
@@ -136,7 +134,6 @@ public class MqttClass implements MqttCallback {
                         }
                         //TOPIC 이 모터제어라면
                     } else if (topic.equals(MqttClass.TOPIC_MOTOR)) {
-                        Log.d("블루투스", message.toString());
                         //블루투스 쓰레드가 살아있다면
                         if (bluetoothConnect != null && bluetoothConnect.checkThread()) {
                             //json 객체로 읽기
@@ -145,8 +142,6 @@ public class MqttClass implements MqttCallback {
                                 String msg = jsonObject.get("Degree") + "";
                                 //블루투스로 각도값 전송
                                 bluetoothConnect.write(msg);
-                                //제어 정보를 수정했다고 다시 서버로 알림
-                                publish(MqttClass.TOPIC_MOTOR_ACK,jsonObject);
                             }
                         }
                         // webRTC 를 하자고 신청이 오면
@@ -156,9 +151,9 @@ public class MqttClass implements MqttCallback {
                         String userId = (String) jsonObject.get("UserId");
                         int cameraId = (int) jsonObject.get("CameraId");
                         //만약 카메라 ID가 동일하다면 웹사이트 접속
-                        if ((cameraId+"").equals(RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId())) {
+                        if ((cameraId + "").equals(RoomDB.getInstance(context).userDAO().getAll().get(0).getCameraId())) {
                             //해당 웹사이트 주소 이후
-                            String url = "*********************************";
+                            String url = "http://" + SERVER_ADDRESS + ":8092/user/ " + userId + "/camera/" + cameraId + "/register";
                             Intent intent = new Intent(activity, WebVIewActivity.class);
                             intent.putExtra("url", url);
                             activity.startActivity(intent);

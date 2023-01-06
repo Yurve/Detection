@@ -4,12 +4,19 @@ import org.eclipse.paho.client.mqttv3.MqttClient;
 
 public class SupportMqtt {
 
-    public static SupportMqtt supportMqtt;
+    private static SupportMqtt supportMqtt;
 
     private MqttClient mqttClient;
 
-    public SupportMqtt(){
-        supportMqtt = SupportMqtt.this;
+    private SupportMqtt(){
+
+    }
+
+    public static SupportMqtt getInstance(){
+       if(supportMqtt == null){
+           supportMqtt = new SupportMqtt();
+       }
+       return supportMqtt;
     }
     public MqttClient getMqttClient() {
         return mqttClient;
