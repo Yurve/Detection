@@ -29,10 +29,12 @@ public class PermissionSupport {
         permission.add(Manifest.permission.INTERNET);
         permission.add(Manifest.permission.RECORD_AUDIO);
         permission.add(Manifest.permission.MODIFY_AUDIO_SETTINGS);
+        permission.add(Manifest.permission.ACCESS_COARSE_LOCATION);
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S){
             permission.add(Manifest.permission.BLUETOOTH);
             permission.add(Manifest.permission.BLUETOOTH_CONNECT);
+            permission.add(Manifest.permission.BLUETOOTH_SCAN);
         }else if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
             permission.add(Manifest.permission.BLUETOOTH);
         }
