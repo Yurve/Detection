@@ -96,10 +96,16 @@ public class CameraActivity extends AppCompatActivity {
     public void startBluetooth() {
         //블루투스 연결 객체 생성
         bluetoothConnect = new BluetoothConnect(this);
-        //블루투스 연결
-        bluetoothConnect.bluetoothConnect();
-        //블루투스 클래스 mqtt 클래스에 전송
-        async.setBluetoothConnect(bluetoothConnect);
+        try {
+            //블루투스 연결
+            bluetoothConnect.bluetoothConnect();
+            //블루투스 클래스 mqtt 클래스에 전송
+            async.setBluetoothConnect(bluetoothConnect);
+
+        }catch (IllegalArgumentException e){
+            //블루투스 모터제어를 안하는 경우
+            e.printStackTrace();
+        }
     }
 
 

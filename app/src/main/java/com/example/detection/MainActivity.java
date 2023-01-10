@@ -66,7 +66,11 @@ public class MainActivity extends AppCompatActivity {
 
                 //페어링된 기기 주소 가져오기
                 bluetoothAddress = bluetoothConnect.getAddress();
-                id.setAddress(bluetoothAddress.trim());
+                try {
+                    id.setAddress(bluetoothAddress.trim());
+                }catch (NullPointerException e){
+                    id.setAddress(null);
+                }
             }
             //기존의 데이터를 삭제한다. 카메라 id 를 1개로 유지하기 위해서 이다.
             if (roomDB.userDAO().getAll().size() > 0) {
