@@ -50,6 +50,8 @@ public class MqttClass implements MqttCallback {
     //블루투스 객체 가져오기
     public void setBluetoothConnect(BluetoothConnect bluetoothConnect) {
         this.bluetoothConnect = bluetoothConnect;
+
+        CLIENT_ID = "android" + RoomDB.getInstance(context).userDAO().getAll().get(0).getUserId();
     }
 
     public void connectMqtt() {

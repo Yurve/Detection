@@ -12,6 +12,7 @@ import android.content.IntentFilter;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Handler;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.example.detection.DB.ID;
@@ -52,6 +53,8 @@ public class BluetoothConnect {
     public void listPairedDevices() throws SecurityException {
         //블루투스가 켜져있는지 확인
         if (!bluetoothAdapter.isEnabled()) {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            context.startActivity(enableBtIntent);
             bluetoothAdapter.enable();
         }
 
