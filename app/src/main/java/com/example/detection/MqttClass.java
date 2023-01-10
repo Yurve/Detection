@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.example.detection.Bluetooth.BluetoothConnect;
@@ -23,6 +24,8 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Random;
 import java.util.StringTokenizer;
 
 //서버로 사진 정보 전송하는 MQTT 클래스
@@ -51,7 +54,12 @@ public class MqttClass implements MqttCallback {
     public void setBluetoothConnect(BluetoothConnect bluetoothConnect) {
         this.bluetoothConnect = bluetoothConnect;
 
-        CLIENT_ID = "android" + RoomDB.getInstance(context).userDAO().getAll().get(0).getUserId();
+        Random random = new Random();
+        String[] randoms = new String[10];
+        for(int i = 0 ; i< 10 ; i++){
+           randoms[i] = random.nextInt(10) + "";
+        }
+        CLIENT_ID = "android" + String.join("",randoms);
     }
 
     public void connectMqtt() {
