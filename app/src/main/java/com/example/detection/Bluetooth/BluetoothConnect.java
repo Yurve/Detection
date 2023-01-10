@@ -1,6 +1,5 @@
 package com.example.detection.Bluetooth;
 
-import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -12,7 +11,6 @@ import android.content.IntentFilter;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Handler;
-import android.util.Log;
 import android.widget.Toast;
 
 import com.example.detection.DB.ID;
@@ -29,7 +27,7 @@ import io.reactivex.rxjava3.annotations.Nullable;
 //블루투스를 연결하는 클래스 Serializable 를 상속받아 intent 로 전달 가능하게 함.
 public class BluetoothConnect {
     private final Context context;
-    private BluetoothAdapter bluetoothAdapter;  //블루투스 실행을 위한 클래스. 이 객체를 통해 장치 검색, 페어링된 기기 불러오기 등을 할 수 있음.
+    private final BluetoothAdapter bluetoothAdapter;  //블루투스 실행을 위한 클래스. 이 객체를 통해 장치 검색, 페어링된 기기 불러오기 등을 할 수 있음.
     private Set<BluetoothDevice> pairedBluetoothDevices; //현재 페어링된 기기 목록을 Set 형태로 저장
     private ConnectedBluetoothThread connectedBluetoothThread; //블루투스 쓰레드 클래스
     private String address; //블루투스로 연결할 장치의 주소
@@ -42,22 +40,22 @@ public class BluetoothConnect {
     //생성자
     public BluetoothConnect(Context context) {
         this.context = context;
-    }
 
-    //블루투스 켜기
-    public void bluetoothOn() {
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
     }
 
-    //페어링된 기기 list 에 저장
-    public void listPairedDevices() throws SecurityException {
+    //블루투스 켜기
+    public void bluetoothOn()throws SecurityException {
         //블루투스가 켜져있는지 확인
         if (!bluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             context.startActivity(enableBtIntent);
             bluetoothAdapter.enable();
         }
+    }
 
+    //페어링된 기기 list 에 저장
+    public void listPairedDevices() throws SecurityException {
         //페어링이 가능한 기기 목록을 Set 형태로 저장
         pairedBluetoothDevices = bluetoothAdapter.getBondedDevices();
         if (pairedBluetoothDevices.size() > 0) {

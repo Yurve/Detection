@@ -34,12 +34,16 @@ public class MainActivity extends AppCompatActivity {
         Button button = findViewById(R.id.button);
         Button buttonQR = findViewById(R.id.buttonqr);
         Button buttonBT = findViewById(R.id.buttonBT);
+        Button buttonBtOn = findViewById(R.id.buttonbtOn);
 
         //권한 확인하기
         permissionCheck();
 
         //자동꺼짐 해제
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        //라즈베리파이와 블루투스 연결
+        bluetoothConnect = new BluetoothConnect(this);
 
         //DB 생성
         RoomDB roomDB = RoomDB.getInstance(this);
@@ -79,15 +83,19 @@ public class MainActivity extends AppCompatActivity {
         //QR 코드 인식 버튼 여기서 카메라 id를 지정한다.
         buttonQR.setOnClickListener(v -> new IntentIntegrator(this).initiateScan());
 
-        //블루투스 페어링 된 기기목록을 불러와 저장한다.
-        buttonBT.setOnClickListener(v -> {
-            //라즈베리파이와 블루투스 연결
-            bluetoothConnect = new BluetoothConnect(this);
+
+        //블루투스가 꺼져 있다면 켜는 버튼
+        buttonBtOn.setOnClickListener(v -> {
             //블루투스 켜기
             bluetoothConnect.bluetoothOn();
+        });
+
+        //블루투스 페어링 된 기기목록을 불러와 저장한다.
+        buttonBT.setOnClickListener(v -> {
             //페어링된 기기 알람 띄우기
             bluetoothConnect.listPairedDevices();
         });
+
     }
 
     @Override
